@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "flarelytics-studio",
+  "compatibility_date": "2026-03-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "analytics": {
+    "binding": "ANALYTICS_SQL"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "SESSION",
+      "id": "bb491ed78371400095a489cec75eb481"
+    }
+  ],
+  "vars": {
+    "OWNER_EMAILS": "elugon10@gmail.com"
+  }
+}

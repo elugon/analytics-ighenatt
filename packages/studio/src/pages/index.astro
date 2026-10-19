@@ -1,0 +1,210 @@
+---
+import { env } from 'cloudflare:workers';
+
+import '../styles/global.css';
+import { resolveViewer } from '../lib/access';
+import { formatDuration, loadReport, type Report } from '../lib/queries';
+import { isPeriod, type SiteConfig } from '../lib/sites';
+import type { StudioEnv } from '../lib/env';
+
+export const prerender = false;
+
+const studio = env as StudioEnv;
+const access = await resolveViewer(Astro.request, studio);
+const requestedDays = Number(Astro.url.searchParams.get('days') ?? '30');
+const days = isPeriod(requestedDays) ? requestedDays : 30;
+
+let site: SiteConfig | null = null;
+let deniedSite = false;
+if (access.status === 'ok') {
+  const requested = Astro.url.searchParams.get('site');
+  const allowed = access.viewer.sites;
+  if (!requested) {
+    site = allowed[0] ?? null;
+  } else {
+    site = allowed.find((item) => item.id === requested) ?? null;
+    deniedSite = site === null;
+  }
+}
+
+let report: Report | null = null;
+let failed = false;
+if (site && !deniedSite) {
+  try {
+    report = await loadReport(studio.ANALYTICS_SQL, site, days);
+  } catch {
+    failed = true;
+  }
+}
+
+const empty = report !== null && report.views === 0 && report.sections.every((section) => section.count === 0);
+
+function href(nextDays: number, nextSite: string): string {
+  return `/?days=${nextDays}&site=${encodeURIComponent(nextSite)}`;
+}
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>{site ? site.label : 'Medición'}</title>
+  </head>
+  <body class="bg-paper text-ink font-sans">
+    <main class="mx-auto max-w-5xl px-6 py-10">
+      {
+        access.status === 'locked' && (
+          <section class="max-w-xl">
+            <h1 class="text-3xl font-semibold tracking-tight">Vista cerrada</h1>
+            <p class="mt-4 text-base leading-relaxed text-muted">
+              La medición ya recoge datos, pero esta pantalla no enseña cifras hasta que Cloudflare Access proteja la dirección. Hace falta el dominio del equipo y el identificador de la aplicación.
+            </p>
+          </section>
+        )
+      }
+      {
+        (access.status === 'denied' || deniedSite) && (
+          <section class="max-w-xl">
+            <h1 class="text-3xl font-semibold tracking-tight">Sin acceso</h1>
+            <p class="mt-4 text-base leading-relaxed text-muted">
+              Esta cuenta no puede ver este sitio.
+            </p>
+          </section>
+        )
+      }
+      {
+        site && (
+          <>
+            <header class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p class="text-sm text-muted">Medición de la home</p>
+                <h1 class="mt-1 text-4xl font-semibold tracking-tight">{site.label}</h1>
+              </div>
+              <nav class="flex gap-2" aria-label="Periodo">
+                {[7, 30, 90].map((option) => (
+                  <a
+                    href={href(option, site.id)}
+                    aria-current={option === days ? 'true' : undefined}
+                    class:list={[
+                      'rounded-full px-3 py-1.5 text-sm',
+                      option === days
+                        ? 'bg-accent text-white'
+                        : 'text-ink ring-1 ring-line',
+                    ]}
+                  >
+                    {option} días
+                  </a>
+                ))}
+              </nav>
+            </header>
+
+            <p class="mt-6 max-w-2xl text-sm leading-relaxed text-muted">
+              Solo cuentan las visitas que aceptaron la analítica. El porcentaje es sobre las páginas vistas de la home.
+            </p>
+
+            {
+              failed && (
+                <p class="mt-10 text-base" role="alert">
+                  No se han podido leer las cifras. Inténtalo de nuevo en unos minutos.
+                </p>
+              )
+            }
+            {
+              empty && (
+                <p class="mt-10 max-w-xl text-base leading-relaxed">
+                  Todavía no hay visitas aceptadas en este periodo.
+                </p>
+              )
+            }
+            {
+              report && !failed && !empty && (
+                <>
+                  <section class="mt-10 grid gap-8 border-t border-line pt-8 sm:grid-cols-3">
+                    <div>
+                      <p class="text-sm text-muted">Visitas</p>
+                      <p class="mt-1 font-mono text-4xl tabular-nums">{report.views}</p>
+                    </div>
+                    <div>
+                      <p class="text-sm text-muted">Visitantes</p>
+                      <p class="mt-1 font-mono text-4xl tabular-nums">{report.visitors}</p>
+                    </div>
+                    <div>
+                      <p class="text-sm text-muted">Tiempo medio</p>
+                      <p class="mt-1 font-mono text-4xl tabular-nums">
+                        {formatDuration(report.averageSeconds)}
+                      </p>
+                    </div>
+                  </section>
+
+                  <section class="mt-12">
+                    <h2 class="text-lg font-semibold">Hasta dónde llegan</h2>
+                    <ol class="mt-6 divide-y divide-line">
+                      {report.sections.map((section) => (
+                        <li class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-4">
+                          <div>
+                            <div class="flex items-baseline justify-between gap-4">
+                              <span class="text-base">{section.label}</span>
+                              <span class="font-mono text-sm tabular-nums text-muted">
+                                {section.count}
+                              </span>
+                            </div>
+                            <div class="mt-2 h-2 rounded-full bg-line">
+                              <div
+                                class="h-2 rounded-full bg-accent"
+                                style={`width: ${section.percent}%`}
+                              />
+                            </div>
+                          </div>
+                          <span class="w-12 text-right font-mono text-sm tabular-nums">
+                            {section.percent}%
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+
+                  <section class="mt-12 grid gap-10 border-t border-line pt-8 md:grid-cols-3">
+                    <div>
+                      <h2 class="text-sm text-muted">Procedencia</h2>
+                      <ul class="mt-3 space-y-2">
+                        {report.referrers.map((item) => (
+                          <li class="flex justify-between gap-4 text-sm">
+                            <span class="truncate">{item.name}</span>
+                            <span class="font-mono tabular-nums">{item.count}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <h2 class="text-sm text-muted">País</h2>
+                      <ul class="mt-3 space-y-2">
+                        {report.countries.map((item) => (
+                          <li class="flex justify-between gap-4 text-sm">
+                            <span>{item.name}</span>
+                            <span class="font-mono tabular-nums">{item.count}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <h2 class="text-sm text-muted">Dispositivo</h2>
+                      <ul class="mt-3 space-y-2">
+                        {report.devices.map((item) => (
+                          <li class="flex justify-between gap-4 text-sm">
+                            <span>{item.name}</span>
+                            <span class="font-mono tabular-nums">{item.count}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </section>
+                </>
+              )
+            }
+          </>
+        )
+      }
+    </main>
+  </body>
+</html>
