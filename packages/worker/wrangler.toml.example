@@ -126,6 +126,23 @@ DATASET_NAME = "flarelytics"
 # Tear down: `npx wrangler delete --name flarelytics-staging`
 # Run baseline: `k6 run perf/baseline-track.js`
 # ─────────────────────────────────────────────────────────────────────────────
+# New durable measurements. Provision the SAME database for worker + studio.
+[[d1_databases]]
+binding = "MEASUREMENT"
+database_name = "flarelytics-measurement"
+database_id = "00000000-0000-0000-0000-000000000002"
+migrations_dir = "../measurement/migrations"
+
+[triggers]
+crons = ["17 3 * * *"]
+
+# Site-wide burst protection per Cloudflare location; namespace must be unique
+# to this measurement service within the account. It is not authentication.
+[[ratelimits]]
+name = "MEASUREMENT_RATE_LIMITER"
+namespace_id = "2026102101"
+simple = { limit = 1000, period = 60 }
+
 [env.staging]
 name = "flarelytics-staging"
 

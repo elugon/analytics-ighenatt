@@ -31,7 +31,7 @@ let report: Report | null = null;
 let failed = false;
 if (site && !deniedSite) {
   try {
-    report = await loadReport(studio.ANALYTICS_SQL, site, days);
+    report = await loadReport(studio.MEASUREMENT, site, days);
   } catch {
     failed = true;
   }
@@ -103,6 +103,9 @@ function href(nextDays: number, nextSite: string): string {
               Solo cuentan las visitas que aceptaron la analítica. El porcentaje es sobre las páginas vistas de la home.
             </p>
 
+            {report?.startedAt && (
+              <p class="mt-2 text-sm text-muted">Datos del nuevo sistema desde {new Date(report.startedAt).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid' })}. Los datos anteriores no se incluyen.</p>
+            )}
             {
               failed && (
                 <p class="mt-10 text-base" role="alert">

@@ -1,0 +1,9 @@
+{
+  "name": "measurement-tests",
+  "compatibility_date": "2026-10-21",
+  "d1_databases": [{
+    "binding": "MEASUREMENT",
+    "database_name": "measurement-tests",
+    "database_id": "00000000-0000-0000-0000-000000000001"
+  }]
+}

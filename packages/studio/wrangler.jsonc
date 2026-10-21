@@ -7,29 +7,34 @@
   "routes": [
     {
       "pattern": "analytics.ighenatt.es",
-      "custom_domain": true
-    }
+      "custom_domain": true,
+    },
   ],
   "observability": {
-    "enabled": true
+    "enabled": true,
   },
   "main": "@astrojs/cloudflare/entrypoints/server",
   "assets": {
     "directory": "./dist",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
   },
-  "analytics": {
-    "binding": "ANALYTICS_SQL"
-  },
+  "d1_databases": [
+    {
+      "binding": "MEASUREMENT",
+      "database_name": "flarelytics-measurement",
+      "database_id": "00000000-0000-0000-0000-000000000002",
+      "migrations_dir": "../measurement/migrations",
+    },
+  ],
   "kv_namespaces": [
     {
       "binding": "SESSION",
-      "id": "bb491ed78371400095a489cec75eb481"
-    }
+      "id": "bb491ed78371400095a489cec75eb481",
+    },
   ],
   "vars": {
     "OWNER_EMAILS": "elugon10@gmail.com,elu.gonzalez@ighenatt.es,denys.dudyk@ighenatt.es",
     "ACCESS_TEAM_DOMAIN": "ighenatt.cloudflareaccess.com",
-    "ACCESS_AUD": "6e9b8e6d38d11cc344e9689aff573d3e524da4ad5b01ee263104245ce217a9fe"
-  }
+    "ACCESS_AUD": "6e9b8e6d38d11cc344e9689aff573d3e524da4ad5b01ee263104245ce217a9fe",
+  },
 }
