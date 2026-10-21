@@ -3,5 +3,5 @@
   "compilerOptions": {
     "types": ["@astrojs/cloudflare"]
   },
-  "include": [".astro/types.d.ts", "src/**/*"]
+  "include": [".astro/types.d.ts", "src/**/*", "worker-configuration.d.ts"]
 }

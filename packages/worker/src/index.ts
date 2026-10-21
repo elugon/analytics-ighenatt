@@ -29,6 +29,8 @@ import type { Env } from './env';
 import { corsHeaders, dataCorsHeaders, fetchAllowedOrigins } from './cors';
 import { deviceType, browserName, osName } from './ua';
 import { handleTrack, isBot, RESERVED_EVENTS } from './track';
+import { handleTrackV2 } from './track-v2';
+import { runRetention } from '@flarelytics/measurement';
 import { handleAdminSites } from './admin';
 import { handlePublicStats } from './public-stats';
 import { handleTrackerJs } from './tracker-script';
@@ -259,6 +261,13 @@ function handleHealth(env: Env): Response {
 }
 
 export default {
+  async scheduled(_event: ScheduledEvent, env: Env): Promise<void> {
+    if (!env.MEASUREMENT) throw new Error('Measurement binding unavailable');
+    const result = await runRetention(env.MEASUREMENT);
+    const log = { component: 'measurement', status: 'retention', ...result };
+    if (result.backlog) console.error(JSON.stringify(log));
+    else console.log(JSON.stringify(log));
+  },
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const { pathname } = url;
@@ -282,6 +291,7 @@ export default {
     if (pathname === '/api/auth/switch-org' && request.method === 'POST') return handleSwitchOrg(request, env);
 
     if (pathname === '/track' && request.method === 'POST') return handleTrack(request, env, ctx);
+    if (pathname === '/track/v2' && request.method === 'POST') return handleTrackV2(request, env);
     if (pathname === '/tracker.js' && request.method === 'GET') return handleTrackerJs(request);
     if (pathname === '/config' && request.method === 'GET') return handleConfig(env);
     if (pathname === '/health' && request.method === 'GET') return handleHealth(env);

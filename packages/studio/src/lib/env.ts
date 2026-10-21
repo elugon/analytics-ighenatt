@@ -1,7 +1,7 @@
-import type { SqlBinding } from './queries';
+import type { MeasurementDatabase } from '@flarelytics/measurement';
 
 export interface StudioEnv {
-  ANALYTICS_SQL: SqlBinding;
+  MEASUREMENT: MeasurementDatabase;
   OWNER_EMAILS?: string;
   ACCESS_TEAM_DOMAIN?: string;
   ACCESS_AUD?: string;
