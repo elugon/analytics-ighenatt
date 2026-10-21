@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { handleTrackV2 } from './track-v2';
 import type { Env } from './env';
+import { unstable_readConfig } from 'wrangler';
+import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { URL } from 'node:url';
 
 const body = {
   event_id: '12345678-1234-4234-8234-123456789012',
@@ -26,6 +31,32 @@ const env = () =>
     MEASUREMENT_RATE_LIMITER: { limit: vi.fn(async () => ({ success: true })) },
   }) as unknown as Env;
 describe('v2 reception', () => {
+  it('disables retention in staging without dedicated measurement resources', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'measurement-config-'));
+    try {
+      const config = join(directory, 'wrangler.toml');
+      await writeFile(
+        config,
+        await readFile(new URL('../wrangler.toml.example', import.meta.url))
+      );
+      const production = unstable_readConfig(
+        { config },
+        { hideWarnings: true }
+      );
+      const staging = unstable_readConfig(
+        { config, env: 'staging' },
+        { hideWarnings: true }
+      );
+      expect(production.triggers.crons).toEqual(['17 3 * * *']);
+      expect(production.d1_databases).toContainEqual(
+        expect.objectContaining({ binding: 'MEASUREMENT' })
+      );
+      expect(staging.d1_databases).toEqual([]);
+      expect(staging.triggers.crons).toEqual([]);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
   it('denies missing/foreign origins before reading or storing', async () => {
     expect(
       (await handleTrackV2(request('https://foreign.com'), env())).status

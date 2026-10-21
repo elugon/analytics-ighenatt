@@ -146,6 +146,10 @@ simple = { limit = 1000, period = 60 }
 [env.staging]
 name = "flarelytics-staging"
 
+# This legacy load-test environment has no dedicated measurement bindings.
+[env.staging.triggers]
+crons = []
+
 [[env.staging.analytics_engine_datasets]]
 binding = "ANALYTICS"
 dataset = "flarelytics_staging"

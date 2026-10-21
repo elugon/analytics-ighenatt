@@ -68,6 +68,11 @@ event now depends on a synchronous D1 transaction and the primary database's
 latency. Shared SQL is owned by the measurement package; `DIMENSIONS` remains
 content metadata, and the old `/track` does not acquire a D1 dependency.
 
+The existing `staging` environment is a legacy load-test target. Its retention
+cron is explicitly disabled and v2 fails closed without dedicated bindings.
+Before enabling v2 there, provision isolated D1/rate-limit resources and declare
+them explicitly: bindings are not inherited from the top-level environment.
+
 ## Operation, limits and rollback
 
 - Structured `measurement` logs distinguish accepted, duplicate, conflict,
