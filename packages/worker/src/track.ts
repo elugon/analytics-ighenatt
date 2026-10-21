@@ -1,3 +1,4 @@
+import { readCappedBody } from './request-body';
 /**
  * POST /track ingestion: origin/API-key auth, bot filtering, payload
  * normalization, the legacy (v0) Analytics Engine write, and the Phase 0.5
@@ -91,9 +92,9 @@ export const RESERVED_EVENTS = new Set(['pageview', 'timing', 'scroll_depth', 'o
  * forward — expected, since the hash already rotates daily; the day of the
  * change will double-count returning visitors as new for that one day.
  */
-export async function visitorHash(env: Pick<Env, 'VISITOR_SALT' | 'QUERY_API_KEY'>, ip: string, ua: string, site: string): Promise<string> {
+export async function visitorHash(env: Pick<Env, 'VISITOR_SALT' | 'QUERY_API_KEY'>, ip: string, ua: string, site: string, timestamp = Date.now()): Promise<string> {
   const salt = env.VISITOR_SALT ?? env.QUERY_API_KEY ?? '';
-  const date = new Date().toISOString().slice(0, 10);
+  const date = new Date(timestamp).toISOString().slice(0, 10);
   const mac = await hmacSha256(salt, `${ip}:${ua}:${site}:${date}`);
   return Array.from(mac.slice(0, 8))
     .map((b) => b.toString(16).padStart(2, '0'))
@@ -152,40 +153,6 @@ async function resolveCanonical(
     }
   }
   return { hash: '', inferred: true };
-}
-
-/**
- * Read the request body up to `maxBytes`, checking `Content-Length` first (a
- * cheap rejection before reading anything) and then the actual byte stream
- * (so a missing/understated Content-Length can't bypass the cap). Returns
- * `null` when the body exceeds the cap.
- */
-async function readCappedBody(request: Request, maxBytes: number): Promise<string | null> {
-  const contentLength = request.headers.get('Content-Length');
-  if (contentLength && Number(contentLength) > maxBytes) return null;
-
-  if (!request.body) return request.text();
-
-  const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.byteLength;
-    if (total > maxBytes) {
-      try { await reader.cancel(); } catch { /* already closing */ }
-      return null;
-    }
-    chunks.push(value);
-  }
-  const buf = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    buf.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder().decode(buf);
 }
 
 export async function handleTrack(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
