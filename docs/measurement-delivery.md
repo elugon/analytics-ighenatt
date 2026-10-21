@@ -38,13 +38,17 @@ calling the shared read-only report interface; no public reporting route is adde
 
 ## Deployment prerequisites and order
 
-This PR does not provision, migrate or deploy remote resources. The placeholder
-database UUID in the configurations deliberately cannot identify production.
+Production account verification and provisioning were completed on 2026-10-21.
+Both services belong to account `a5260a7989904d444bf1ec73ee6e00fc`; the dedicated
+EU-jurisdiction database is `ef5cf544-fe38-4f90-b052-a2bef0f8105c`.
+Studio records this production UUID. The sanitized ingestion example keeps a
+placeholder; its deployment configuration must use the verified production UUID.
+Never use that production database for synthetic test events or previews.
 
 1. Verify the ingestion Worker and `flarelytics-studio` belong to the same
-   Cloudflare account. Account identity was not verifiable during implementation;
-   deployment is blocked until this is confirmed. Do not introduce a cross-account
-   API as a workaround.
+   Cloudflare account. This was verified using Wrangler before initial production
+   rollout; repeat the check if either service moves. Do not introduce a
+   cross-account API as a workaround.
 2. Create a dedicated `flarelytics-measurement` D1 database. Do not use
    `flarelytics-dimensions`. Replace the placeholder database UUID in the ingestion
    configuration and Studio with this same database's actual UUID. Keep preview
