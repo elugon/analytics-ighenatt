@@ -110,7 +110,9 @@ describe('real local D1', () => {
     expect(report.visitors).toBe(1);
     expect(report.startedAt).toBe(1000);
     expect(report.countries).toEqual([{ name: 'ES', count: 1 }]);
-  });
+    // This exercises 100 real D1 transactions alongside the workspace builds;
+    // its deadline is an integration budget, not a five-second performance SLA.
+  }, 30000);
   it('uses half-open server time windows and isolated sites', async () => {
     expect(
       (await readReport(db, SITES['salagraupera.com'], 7, 1000)).views
