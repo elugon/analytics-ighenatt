@@ -18,12 +18,17 @@
     "directory": "./dist",
     "binding": "ASSETS",
   },
+  "analytics": {
+    "binding": "ANALYTICS_SQL",
+    "remote": true,
+  },
   "d1_databases": [
     {
       "binding": "MEASUREMENT",
       "database_name": "flarelytics-measurement",
       "database_id": "ef5cf544-fe38-4f90-b052-a2bef0f8105c",
       "migrations_dir": "../measurement/migrations",
+      "remote": true,
     },
   ],
   "kv_namespaces": [

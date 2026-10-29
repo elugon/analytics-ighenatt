@@ -74,16 +74,42 @@ async function emailFromAccessJwt(
   return valid ? payload.email.toLowerCase() : null;
 }
 
+export function allowsLocalOwner(request: Request, flag: string | undefined): boolean {
+  if (flag !== '1') return false;
+  let url: URL;
+  try {
+    url = new URL(request.url);
+  } catch {
+    return false;
+  }
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return true;
+  // wrangler dev rewrites request.url to the custom domain. The local request
+  // still arrives as http and without an edge ray.
+  return url.protocol === 'http:' && request.headers.get('cf-ray') === null;
+}
+
 export async function resolveViewer(
   request: Request,
   env: {
     OWNER_EMAILS?: string;
     ACCESS_TEAM_DOMAIN?: string;
     ACCESS_AUD?: string;
+    STUDIO_LOCAL_OWNER?: string;
   }
 ): Promise<
   { status: 'locked' } | { status: 'denied' } | { status: 'ok'; viewer: Viewer }
 > {
+  if (allowsLocalOwner(request, env.STUDIO_LOCAL_OWNER)) {
+    return {
+      status: 'ok',
+      viewer: {
+        email: 'local-owner',
+        role: 'owner',
+        sites: Object.values(SITES),
+      },
+    };
+  }
+
   if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) return { status: 'locked' };
 
   const jwt = request.headers.get('cf-access-jwt-assertion');

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resolveViewer } from './access';
+import { allowsLocalOwner, resolveViewer } from './access';
 import { readFile } from 'node:fs/promises';
 import { URL } from 'node:url';
 
@@ -70,10 +70,33 @@ describe('Studio access remains a prerequisite to D1 reports', () => {
       'utf8'
     );
     expect(source.indexOf('await resolveViewer')).toBeLessThan(
-      source.indexOf('await loadReport')
+      source.indexOf('await loadSiteReport')
     );
     expect(source).toContain('if (site && !deniedSite)');
     expect(source).toContain('studio.MEASUREMENT');
-    expect(source).not.toContain('ANALYTICS_SQL');
+    expect(source).toContain('loadAnalyticsReport');
+  });
+});
+
+describe('local owner preview', () => {
+  it('opens only a local request when the preview flag is set', () => {
+    expect(allowsLocalOwner(new Request('http://127.0.0.1:8787/'), '1')).toBe(true);
+    expect(allowsLocalOwner(new Request('http://analytics.ighenatt.es/'), '1')).toBe(true);
+    expect(
+      allowsLocalOwner(
+        new Request('http://analytics.ighenatt.es/', { headers: { 'cf-ray': 'abc' } }),
+        '1'
+      )
+    ).toBe(false);
+    expect(allowsLocalOwner(new Request('https://analytics.ighenatt.es/'), '1')).toBe(false);
+    expect(allowsLocalOwner(new Request('http://127.0.0.1:8787/'), undefined)).toBe(false);
+  });
+
+  it('does not treat the public host as a local owner', async () => {
+    expect(
+      await resolveViewer(new Request('https://analytics.ighenatt.es/'), {
+        STUDIO_LOCAL_OWNER: '1',
+      })
+    ).toEqual({ status: 'locked' });
   });
 });
