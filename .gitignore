@@ -3,6 +3,7 @@ dist/
 .wrangler/
 .turbo/
 .env
+.dev.vars
 *.log
 .gstack/
 wrangler.toml

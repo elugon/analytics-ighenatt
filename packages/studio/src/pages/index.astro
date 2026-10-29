@@ -3,6 +3,8 @@ import { env } from 'cloudflare:workers';
 
 import '../styles/global.css';
 import { resolveViewer } from '../lib/access';
+import { loadSiteReport } from '../lib/load-site-report';
+import { loadMeasurement } from '../lib/measurement';
 import { formatDuration, loadReport, type Report } from '../lib/queries';
 import { isPeriod, type SiteConfig } from '../lib/sites';
 import type { StudioEnv } from '../lib/env';
@@ -29,12 +31,18 @@ if (access.status === 'ok') {
 
 let report: Report | null = null;
 let failed = false;
+const analytics = studio.ANALYTICS_SQL;
+const measurement = studio.MEASUREMENT;
 if (site && !deniedSite) {
-  try {
-    report = await loadReport(studio.ANALYTICS_SQL, site, days);
-  } catch {
-    failed = true;
-  }
+  const selected = site;
+  const loaded = await loadSiteReport({
+    analytics: analytics ? () => loadReport(analytics, selected, days) : undefined,
+    measurement: measurement
+      ? () => loadMeasurement(measurement, selected, days)
+      : undefined,
+  });
+  report = loaded.report;
+  failed = loaded.failed;
 }
 
 const empty = report !== null && report.views === 0 && report.sections.every((section) => section.count === 0);
@@ -76,6 +84,26 @@ function href(nextDays: number, nextSite: string): string {
       {
         site && (
           <>
+            {
+              access.status === 'ok' && access.viewer.sites.length > 1 && (
+                <nav class="mb-8 flex flex-wrap gap-2 md:flex-nowrap" aria-label="Cliente">
+                  {access.viewer.sites.map((item) => (
+                    <a
+                      href={href(days, item.id)}
+                      aria-current={item.id === site.id ? 'true' : undefined}
+                      class:list={[
+                        'whitespace-nowrap rounded-full px-3 py-1.5 text-sm',
+                        item.id === site.id
+                          ? 'bg-accent text-white'
+                          : 'text-ink ring-1 ring-line',
+                      ]}
+                    >
+                      {item.label}
+                    </a>
+                  ))}
+                </nav>
+              )
+            }
             <header class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div>
                 <p class="text-sm text-muted">Medición de la home</p>

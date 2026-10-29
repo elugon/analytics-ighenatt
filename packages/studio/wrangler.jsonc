@@ -19,12 +19,21 @@
     "binding": "ASSETS"
   },
   "analytics": {
-    "binding": "ANALYTICS_SQL"
+    "binding": "ANALYTICS_SQL",
+    "remote": true
   },
   "kv_namespaces": [
     {
       "binding": "SESSION",
       "id": "bb491ed78371400095a489cec75eb481"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "MEASUREMENT",
+      "database_name": "flarelytics-measurement",
+      "database_id": "ef5cf544-fe38-4f90-b052-a2bef0f8105c",
+      "remote": true
     }
   ],
   "vars": {

@@ -1,4 +1,4 @@
-import type { PeriodDays, SiteConfig } from './sites';
+import type { PeriodDays, SiteConfig } from './sites.ts';
 
 export interface SqlBinding {
   query(input: { query: string }): Promise<{ data?: Record<string, unknown>[] }>;
@@ -47,6 +47,59 @@ export interface Report {
   devices: NamedCount[];
 }
 
+export interface RawReport {
+  views: number;
+  visitors: number;
+  averageSeconds: number;
+  sectionCounts: ReadonlyMap<string, number>;
+  referrers: NamedCount[];
+  countries: NamedCount[];
+  devices: NamedCount[];
+}
+
+export function namedCounts(
+  source: readonly Record<string, unknown>[],
+  fallback: string
+): NamedCount[] {
+  return source.map((row) => ({
+    name: String(row.name || fallback),
+    count: numberValue(row.total),
+  }));
+}
+
+export function sectionCounts(
+  source: readonly Record<string, unknown>[]
+): Map<string, number> {
+  return new Map(
+    source.map((row) => [String(row.section ?? ''), numberValue(row.total)])
+  );
+}
+
+export function countValue(value: unknown): number {
+  return numberValue(value);
+}
+
+export function assembleReport(site: SiteConfig, raw: RawReport): Report {
+  return {
+    views: raw.views,
+    visitors: raw.visitors,
+    averageSeconds: raw.averageSeconds,
+    sections: site.sections.map((section) => {
+      const count = raw.sectionCounts.get(section.key) ?? 0;
+      const percent = raw.views > 0 ? Math.round((count / raw.views) * 100) : 0;
+      return {
+        key: section.key,
+        label: section.label,
+        count,
+        percent: Math.min(percent, 100),
+      };
+    }),
+    referrers: raw.referrers,
+    countries: raw.countries,
+    devices: raw.devices,
+  };
+}
+
 export async function loadReport(
   sql: SqlBinding,
   site: SiteConfig,
@@ -86,38 +139,15 @@ export async function loadReport(
       ),
     ]);
 
-  const views = numberValue(viewRows[0]?.total);
-  const counts = new Map(
-    sectionRows.map((row) => [String(row.section ?? ''), numberValue(row.total)])
-  );
-
-  return {
-    views,
+  return assembleReport(site, {
+    views: numberValue(viewRows[0]?.total),
     visitors: numberValue(visitorRows[0]?.total),
     averageSeconds: numberValue(timingRows[0]?.total),
-    sections: site.sections.map((section) => {
-      const count = counts.get(section.key) ?? 0;
-      const percent = views > 0 ? Math.round((count / views) * 100) : 0;
-      return {
-        key: section.key,
-        label: section.label,
-        count,
-        percent: Math.min(percent, 100),
-      };
-    }),
-    referrers: referrerRows.map((row) => ({
-      name: String(row.name || 'direct'),
-      count: numberValue(row.total),
-    })),
-    countries: countryRows.map((row) => ({
-      name: String(row.name || 'sin país'),
-      count: numberValue(row.total),
-    })),
-    devices: deviceRows.map((row) => ({
-      name: String(row.name || 'desconocido'),
-      count: numberValue(row.total),
-    })),
-  };
+    sectionCounts: sectionCounts(sectionRows),
+    referrers: namedCounts(referrerRows, 'direct'),
+    countries: namedCounts(countryRows, 'sin país'),
+    devices: namedCounts(deviceRows, 'desconocido'),
+  });
 }
 
 export function formatDuration(seconds: number): string {
