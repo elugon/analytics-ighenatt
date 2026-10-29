@@ -1,12 +1,13 @@
-import { chooseReport } from './choose-report.ts';
-import type { Report } from './queries.ts';
+import type { Report } from '@flarelytics/measurement';
+import { chooseReport } from './choose-report';
 
 export async function loadSiteReport(sources: {
   analytics?: () => Promise<Report>;
   measurement?: () => Promise<Report>;
 }): Promise<{ report: Report | null; failed: boolean }> {
-  const jobs: Array<Promise<{ source: 'analytics' | 'measurement'; report: Report | null; failed: boolean }>> =
-    [];
+  const jobs: Array<
+    Promise<{ source: 'analytics' | 'measurement'; report: Report | null; failed: boolean }>
+  > = [];
 
   if (sources.analytics) {
     const load = sources.analytics;

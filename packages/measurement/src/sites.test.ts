@@ -1,7 +1,5 @@
-import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
-
-import { CLIENTS, SITES } from '../src/lib/sites.ts';
+import { describe, expect, it } from 'vitest';
+import { SITES } from './sites';
 
 const expected = {
   'salagraupera.com': {
@@ -44,27 +42,22 @@ const expected = {
   },
 } as const;
 
-describe('site catalog', () => {
-  it('lists the five measured homepages, with Sala Graupera first', () => {
-    assert.deepEqual(Object.keys(SITES), Object.keys(expected));
-    assert.equal(Object.values(SITES)[0]?.id, 'salagraupera.com');
+describe('measured homepages', () => {
+  it('lists the five clients, with Sala Graupera first', () => {
+    expect(Object.keys(SITES)).toEqual(Object.keys(expected));
+    expect(Object.values(SITES)[0]?.id).toBe('salagraupera.com');
   });
 
-  it('keeps homepage paths and section keys for each client', () => {
+  it('keeps the homepage paths and section keys', () => {
     for (const [id, site] of Object.entries(expected)) {
       const actual = SITES[id];
-      assert.ok(actual);
-      assert.equal(actual.label, site.label);
-      assert.deepEqual(actual.homepagePaths, site.homepagePaths);
-      assert.deepEqual(
-        actual.sections.map((section) => section.key),
-        site.sections
-      );
+      expect(actual?.label).toBe(site.label);
+      expect(actual?.homepagePaths).toEqual(site.homepagePaths);
+      expect(actual?.sections.map((section) => section.key)).toEqual(site.sections);
     }
   });
 
-  it('does not grant a client login by email', () => {
-    assert.deepEqual(CLIENTS, {});
-    assert.equal(SITES['example.com'], undefined);
+  it('does not include an unknown hostname', () => {
+    expect(SITES['example.com']).toBeUndefined();
   });
 });

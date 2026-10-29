@@ -1,9 +1,9 @@
-import type { MeasurementDb } from './measurement.ts';
-import type { SqlBinding } from './queries.ts';
+import type { MeasurementDatabase } from '@flarelytics/measurement';
+import type { SqlBinding } from './analytics-report';
 
 export interface StudioEnv {
+  MEASUREMENT: MeasurementDatabase;
   ANALYTICS_SQL?: SqlBinding;
-  MEASUREMENT?: MeasurementDb;
   OWNER_EMAILS?: string;
   ACCESS_TEAM_DOMAIN?: string;
   ACCESS_AUD?: string;

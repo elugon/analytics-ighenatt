@@ -1,4 +1,4 @@
-import type { Report } from './queries.ts';
+import type { Report } from '@flarelytics/measurement';
 
 /** Prefer the ledger with more homepage views. A tie keeps the D1 report. */
 export function chooseReport(

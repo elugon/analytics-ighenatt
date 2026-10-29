@@ -1,4 +1,4 @@
-import { CLIENTS, SITES, type SiteConfig } from './sites.ts';
+import { CLIENTS, SITES, type SiteConfig } from './sites';
 
 export interface Viewer {
   email: string;
@@ -7,7 +7,7 @@ export interface Viewer {
 }
 
 interface AccessCerts {
-  keys: JsonWebKey & { kid?: string }[];
+  keys: (JsonWebKey & { kid?: string })[];
 }
 
 function ownerEmails(raw: string | undefined): Set<string> {
@@ -19,7 +19,7 @@ function ownerEmails(raw: string | undefined): Set<string> {
   );
 }
 
-function bytes(value: string): Uint8Array {
+function bytes(value: string): Uint8Array<ArrayBuffer> {
   const padded = value.replace(/-/g, '+').replace(/_/g, '/');
   const binary = atob(padded);
   const out = new Uint8Array(binary.length);
@@ -52,9 +52,9 @@ async function emailFromAccessJwt(
   if (!audienceOk || expires < Date.now()) return null;
   if (typeof payload.email !== 'string') return null;
 
-  const certs = (await fetch(
-    `https://${teamDomain}/cdn-cgi/access/certs`
-  ).then((response) => response.json())) as AccessCerts;
+  const certs = (await fetch(`https://${teamDomain}/cdn-cgi/access/certs`).then(
+    (response) => response.json()
+  )) as AccessCerts;
   const jwk = certs.keys.find((key) => key.kid === header.kid);
   if (!jwk) return null;
 

@@ -4,6 +4,9 @@
  * none of them has to import it back out of index.ts.
  */
 export interface Env {
+  /** Durable homepage measurements; separate from content dimensions. */
+  MEASUREMENT?: D1Database;
+  MEASUREMENT_RATE_LIMITER?: RateLimit;
   // v0 (legacy)
   ANALYTICS: AnalyticsEngineDataset;
   SITE_CONFIG: KVNamespace;

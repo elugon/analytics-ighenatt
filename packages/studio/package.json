@@ -8,16 +8,21 @@
     "build": "astro build",
     "preview": "astro preview",
     "deploy": "astro build && wrangler deploy",
-    "test": "node --experimental-strip-types --test test/*.ts"
+    "test": "vitest run",
+    "typecheck": "astro check",
+    "pretypecheck": "wrangler types worker-configuration.d.ts"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.1",
-    "astro": "^7.4.0"
+    "astro": "^7.4.0",
+    "@flarelytics/measurement": "*"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.0",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.8.0",
-    "wrangler": "^4.151.0"
+    "wrangler": "^4.151.0",
+    "vitest": "^3.0.0",
+    "@cloudflare/workers-types": "^5.20261019.1"
   }
 }

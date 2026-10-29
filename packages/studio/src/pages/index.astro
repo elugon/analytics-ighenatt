@@ -2,9 +2,9 @@
 import { env } from 'cloudflare:workers';
 
 import '../styles/global.css';
+import { loadAnalyticsReport } from '../lib/analytics-report';
 import { resolveViewer } from '../lib/access';
 import { loadSiteReport } from '../lib/load-site-report';
-import { loadMeasurement } from '../lib/measurement';
 import { formatDuration, loadReport, type Report } from '../lib/queries';
 import { isPeriod, type SiteConfig } from '../lib/sites';
 import type { StudioEnv } from '../lib/env';
@@ -36,10 +36,10 @@ const measurement = studio.MEASUREMENT;
 if (site && !deniedSite) {
   const selected = site;
   const loaded = await loadSiteReport({
-    analytics: analytics ? () => loadReport(analytics, selected, days) : undefined,
-    measurement: measurement
-      ? () => loadMeasurement(measurement, selected, days)
+    analytics: analytics
+      ? () => loadAnalyticsReport(analytics, selected, days)
       : undefined,
+    measurement: () => loadReport(measurement, selected, days),
   });
   report = loaded.report;
   failed = loaded.failed;
@@ -131,6 +131,9 @@ function href(nextDays: number, nextSite: string): string {
               Solo cuentan las visitas que aceptaron la analítica. El porcentaje es sobre las páginas vistas de la home.
             </p>
 
+            {report?.startedAt && (
+              <p class="mt-2 text-sm text-muted">Datos del nuevo sistema desde {new Date(report.startedAt).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid' })}. Los datos anteriores no se incluyen.</p>
+            )}
             {
               failed && (
                 <p class="mt-10 text-base" role="alert">
